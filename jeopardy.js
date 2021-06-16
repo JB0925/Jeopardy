@@ -61,36 +61,29 @@ async function getCategoryIds() {
 
 async function getCategory(catId) {
     let clues = [];
-    let clueIdArray = [];
+    let clueCategories = {};
     const arr = await catId;
+
     for (let i = 0; i < arr.length; i++) {
         let clueObj = {};
         const id = arr[i];
         const {res, data} = await axios.get('http://jservice.io/api/category',
         {params: {id,}});
-        // console.log(data.clues);
-        let newArr = Array.from(data.clues)
-        let truth = newArr.every(item => item.question !== "");
-        console.log(truth)
+        
         clueObj['title'] = data.title;
+        clueCategories[data.title] = []
         for (let j = 0; j < 5; j++) {
             let clueId = Math.floor(Math.random() * data.clues.length);
             if (data.clues.length === 5) {
                 clueId = j;
             } else {
-                if (clueIdArray.indexOf(clueId) !== -1) {
-                    // console.log(clueIdArray)
-                    console.log(`first clue id: ${clueId}`)
-                    while (clueIdArray.indexOf(clueId) !== -1) {
+                if (clueCategories[data.title].indexOf(clueId) !== -1) {
+                    while (clueCategories[data.title].indexOf(clueId) !== -1) {
                         clueId = Math.floor(Math.random() * data.clues.length);
-                        if (data.clues[clueId].question === "") {
-                            clueId = clueIdArray.slice(-1)[0];
-                        };
-                        console.log(`new clue id: ${clueId}`);
                     }
                 }
             }
-            clueIdArray.push(clueId);
+            clueCategories[data.title].push(clueId);
             const newClue = {
                 question: data.clues[clueId].question,
                 answer: data.clues[clueId].answer,
@@ -102,8 +95,7 @@ async function getCategory(catId) {
         categories.push(clueObj);
         clues = [];
         clueIdArray = [];
-    }
-    console.log(categories)
+    };
     return categories;
 };
 
@@ -117,9 +109,8 @@ async function getCategory(catId) {
  */
 
 async function fillTable() {
-    let counter = 0;
     await getCategory(getCategoryIds());
-    console.log(categories)
+
     let $thead = $('thead');
     let $tbody = $('tbody');
     let $headerRow = $('#header');
@@ -133,13 +124,12 @@ async function fillTable() {
             try {
                 const newQuestion = categories[k].clues[j].question;
                 $newRow.append(`<td>${newQuestion}</td>`)
-                counter++
+
             } catch(e) {
                 console.log('no question at this index');
             }
         }
         $tbody.append($newRow);
-        counter = 0;
     }
 }
 fillTable();
