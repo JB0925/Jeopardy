@@ -32,7 +32,13 @@ async function getCategoryIds() {
     {params: {count: 100}});
     for (let i = 0; i < data.length; i++) {
         let idx = Math.floor(Math.random() * data.length)
-        if (!idArray.includes(data[idx].id)) {
+
+        const allQuestions = await axios.get('http://jservice.io/api/category',
+        {params: {id:data[idx].id}})
+        
+        const trueOrFalse = Array.from(allQuestions.data.clues).every(item => item.question !== "");
+    
+        if (!idArray.includes(data[idx].id) && trueOrFalse) {
             idArray.push(data[idx].id)
         }
         if (idArray.length === 6) {
@@ -55,15 +61,36 @@ async function getCategoryIds() {
 
 async function getCategory(catId) {
     let clues = [];
+    let clueIdArray = [];
     const arr = await catId;
     for (let i = 0; i < arr.length; i++) {
         let clueObj = {};
         const id = arr[i];
         const {res, data} = await axios.get('http://jservice.io/api/category',
         {params: {id,}});
+        // console.log(data.clues);
+        let newArr = Array.from(data.clues)
+        let truth = newArr.every(item => item.question !== "");
+        console.log(truth)
         clueObj['title'] = data.title;
         for (let j = 0; j < 5; j++) {
-            const clueId = Math.floor(Math.random() * data.clues.length);
+            let clueId = Math.floor(Math.random() * data.clues.length);
+            if (data.clues.length === 5) {
+                clueId = j;
+            } else {
+                if (clueIdArray.indexOf(clueId) !== -1) {
+                    // console.log(clueIdArray)
+                    console.log(`first clue id: ${clueId}`)
+                    while (clueIdArray.indexOf(clueId) !== -1) {
+                        clueId = Math.floor(Math.random() * data.clues.length);
+                        if (data.clues[clueId].question === "") {
+                            clueId = clueIdArray.slice(-1)[0];
+                        };
+                        console.log(`new clue id: ${clueId}`);
+                    }
+                }
+            }
+            clueIdArray.push(clueId);
             const newClue = {
                 question: data.clues[clueId].question,
                 answer: data.clues[clueId].answer,
@@ -74,7 +101,9 @@ async function getCategory(catId) {
         clueObj['clues'] = clues;
         categories.push(clueObj);
         clues = [];
+        clueIdArray = [];
     }
+    console.log(categories)
     return categories;
 };
 
@@ -88,8 +117,32 @@ async function getCategory(catId) {
  */
 
 async function fillTable() {
+    let counter = 0;
+    await getCategory(getCategoryIds());
+    console.log(categories)
+    let $thead = $('thead');
+    let $tbody = $('tbody');
+    let $headerRow = $('#header');
+    for (let i = 0; i < categories.length; i++) {
+        let $catHeader = $(`<th>${categories[i].title}</th>`);
+        $headerRow.append($catHeader);
+    }
+    for (let j = 0; j < categories.length; j++) {
+        let $newRow = $('<tr></tr>');
+        for (let k = 0; k < categories[0]['clues'].length+1; k++) {
+            try {
+                const newQuestion = categories[k].clues[j].question;
+                $newRow.append(`<td>${newQuestion}</td>`)
+                counter++
+            } catch(e) {
+                console.log('no question at this index');
+            }
+        }
+        $tbody.append($newRow);
+        counter = 0;
+    }
 }
-
+fillTable();
 /** Handle clicking on a clue: show the question or answer.
  *
  * Uses .showing property on clue to determine what to show:

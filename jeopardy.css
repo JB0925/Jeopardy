@@ -5,3 +5,28 @@
   #8d2ab5
   #74119c
 */
+table {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  margin-top: 100px;
+  color: white;
+}
+
+th {
+  height: 4.5em;
+  width: 12em;
+  border: 1px solid white;
+  text-transform:uppercase;
+  background-color: blue;
+}
+
+td {
+  height: 9em;
+  width: 12em;
+  border: 1px solid white;
+  background-color: blue;
+  color: white;
+  text-align: center;
+}
