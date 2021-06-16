@@ -26,8 +26,20 @@ let categories = [];
  * Returns array of category ids
  */
 
-function getCategoryIds() {
-}
+async function getCategoryIds() {
+    let idArray = [];
+    const {res, data} = await axios.get('http://jservice.io/api/categories',
+    {params: {count: 100}});
+    for (let i = 0; i < data.length; i++) {
+        let idx = Math.floor(Math.random() * data.length)
+        if (!idArray.includes(data[idx].id)) {
+            idArray.push(data[idx].id)
+        }
+        if (idArray.length === 6) {
+            return idArray;
+        };
+    };
+};
 
 /** Return object with data about a category:
  *
@@ -41,8 +53,31 @@ function getCategoryIds() {
  *   ]
  */
 
-function getCategory(catId) {
-}
+async function getCategory(catId) {
+    let clues = [];
+    const arr = await catId;
+    for (let i = 0; i < arr.length; i++) {
+        let clueObj = {};
+        const id = arr[i];
+        const {res, data} = await axios.get('http://jservice.io/api/category',
+        {params: {id,}});
+        clueObj['title'] = data.title;
+        for (let j = 0; j < 5; j++) {
+            const clueId = Math.floor(Math.random() * data.clues.length);
+            const newClue = {
+                question: data.clues[clueId].question,
+                answer: data.clues[clueId].answer,
+                showing: null
+            }
+            clues.push(newClue);
+        }
+        clueObj['clues'] = clues;
+        categories.push(clueObj);
+        clues = [];
+    }
+    return categories;
+};
+
 
 /** Fill the HTML table#jeopardy with the categories & cells for questions.
  *
