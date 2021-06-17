@@ -19,8 +19,10 @@
 //  ]
 
 let categories = [];
-
-
+let counter = 0;
+const $spinner = $('#spinner');
+const $restartButton = $('button');
+let startGame = true;
 /** Get NUM_CATEGORIES random category from API.
  *
  * Returns array of category ids
@@ -109,11 +111,16 @@ async function getCategory(catId) {
  */
 
 async function fillTable() {
+    const $table = $(`<table id="jeopardy"></table>`);
     await getCategory(getCategoryIds());
-
-    let $thead = $('thead');
-    let $tbody = $('tbody');
-    let $headerRow = $('#header');
+    
+    let $thead = $('<thead></thead>');
+    let $tbody = $('<tbody></tbody>');
+    let $headerRow = $('<tr></tr>');
+    $headerRow.attr('id', 'header');
+    $thead.appendTo($table);
+    $tbody.appendTo($table);
+    $headerRow.appendTo($thead);
     for (let i = 0; i < categories.length; i++) {
         let $catHeader = $(`<th>${categories[i].title}</th>`);
         $headerRow.append($catHeader);
@@ -123,7 +130,18 @@ async function fillTable() {
         for (let k = 0; k < categories[0]['clues'].length+1; k++) {
             try {
                 const newQuestion = categories[k].clues[j].question;
-                $newRow.append(`<td>${newQuestion}</td>`)
+                const newAnswer = categories[k].clues[j].answer;
+                const $newTd = $(`<td>${newQuestion}</td>`)
+                const $questionMark = $('<td>?</td>');
+                const $answer = $(`<td>${newAnswer}</td>`);
+                $answer.attr('id', `a${k}-${j}`);
+                $questionMark.attr('id', `${k}-${j}`)
+                $newTd.attr('id', `q${k}-${j}`);
+                $answer.css('display', 'none');
+                $newTd.css('display', 'none');
+                $newRow.append($newTd);
+                $newRow.append($answer);
+                $newRow.append($questionMark);
 
             } catch(e) {
                 console.log('no question at this index');
@@ -131,8 +149,11 @@ async function fillTable() {
         }
         $tbody.append($newRow);
     }
+    $table.appendTo($('body'));
+    $table.on('click', handleClick);
+    return $table;
 }
-fillTable();
+
 /** Handle clicking on a clue: show the question or answer.
  *
  * Uses .showing property on clue to determine what to show:
@@ -142,6 +163,23 @@ fillTable();
  * */
 
 function handleClick(evt) {
+    let id = evt.target.id;
+    if (id.length === 3) {
+        let $questionMark = $(`#${id}`);
+        let $question = $(`#q${id}`);
+        $questionMark.remove();
+        $question.css('display', 'table-cell');
+    } 
+    if (id.slice(0)[0] === 'q') {
+        let $question = $(`#${id}`);
+        $question.remove();
+        let secondPartofId = id.slice(1)
+        let $answer = $(`#a${secondPartofId}`)
+        $answer.css('display', 'table-cell');
+    } 
+    else {
+        return;
+    }
 }
 
 /** Wipe the current Jeopardy board, show the loading spinner,
@@ -149,12 +187,19 @@ function handleClick(evt) {
  */
 
 function showLoadingView() {
-
+    setTimeout(() => {
+        $spinner.css('opacity', '1');
+    })
+    $restartButton.text('Loading...')
 }
 
 /** Remove the loading spinner and update the button used to fetch data. */
 
 function hideLoadingView() {
+    setTimeout(() => {
+        $spinner.css('opacity', '0');
+        $restartButton.text('Restart');
+    },10);
 }
 
 /** Start game:
@@ -165,8 +210,26 @@ function hideLoadingView() {
  * */
 
 async function setupAndStart() {
+    showLoadingView();
+    await fillTable();
+    $(function() {
+        hideLoadingView();
+    }) 
 }
 
+$restartButton.on('click', async function() {
+    // if (!startGame) {
+    //     location.reload();
+    //     setTimeout(() => {
+    //         setupAndStart();
+    //     },500)
+    // }
+    // startGame = false;
+    let $oldTable = $('#jeopardy');
+    $oldTable.remove();
+    categories = [];
+    await setupAndStart();
+});
 /** On click of start / restart button, set up game. */
 
 // TODO
