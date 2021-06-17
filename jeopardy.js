@@ -110,45 +110,74 @@ async function getCategory(catId) {
  *   (initally, just show a "?" where the question/answer would go.)
  */
 
-async function fillTable() {
-    const $table = $(`<table id="jeopardy"></table>`);
-    await getCategory(getCategoryIds());
-    
-    let $thead = $('<thead></thead>');
-    let $tbody = $('<tbody></tbody>');
-    let $headerRow = $('<tr></tr>');
-    $headerRow.attr('id', 'header');
-    $thead.appendTo($table);
-    $tbody.appendTo($table);
-    $headerRow.appendTo($thead);
-    for (let i = 0; i < categories.length; i++) {
-        let $catHeader = $(`<th>${categories[i].title}</th>`);
-        $headerRow.append($catHeader);
-    }
-    for (let j = 0; j < categories.length; j++) {
-        let $newRow = $('<tr></tr>');
-        for (let k = 0; k < categories[0]['clues'].length+1; k++) {
-            try {
-                const newQuestion = categories[k].clues[j].question;
-                const newAnswer = categories[k].clues[j].answer;
-                const $newTd = $(`<td>${newQuestion}</td>`)
-                const $questionMark = $('<td>?</td>');
-                const $answer = $(`<td>${newAnswer}</td>`);
-                $answer.attr('id', `a${k}-${j}`);
-                $questionMark.attr('id', `${k}-${j}`)
-                $newTd.attr('id', `q${k}-${j}`);
-                $answer.css('display', 'none');
-                $newTd.css('display', 'none');
-                $newRow.append($newTd);
-                $newRow.append($answer);
-                $newRow.append($questionMark);
+// create the pieces needed for the HTML table
+const makeTableHeadTableRowandHeaderRow = () => {
+    const table = $(`<table id="jeopardy"></table>`);
+    let thead = $('<thead></thead>');
+    let tbody = $('<tbody></tbody>');
+    let headerRow = $('<tr></tr>');
+    headerRow.attr('id', 'header');
+    return [
+        table,
+        thead,
+        tbody,
+        headerRow
+    ];
+};
 
+// append the category titles to the table header
+const makeCategoryHeaders = (data, header) => {
+    for (let i = 0; i < data.length; i++) {
+        let $categoryHeader = $(`<th>${data[i].title}</th>`);
+        header.append($categoryHeader);
+    };
+};
+
+// creating the rows of questions, answers, and placeholder question mark cells
+const makeAndFillTableRows = function (data, tbody) {
+    for (let j = 0; j < data.length; j++) {
+        let $newRow = $('<tr></tr>');
+        for (let k = 0; k < data[0]['clues'].length+1; k++) {
+            try {
+                createAndAppendQuestionandAnswerTrs(data, j, k, $newRow);
             } catch(e) {
                 console.log('no question at this index');
             }
         }
-        $tbody.append($newRow);
-    }
+        tbody.append($newRow);
+    };
+};
+
+// take the data and create three table cells, which will be appended to the rows in the body
+const createAndAppendQuestionandAnswerTrs = (data, indexOne, indexTwo, newRow) => {
+    const newQuestion = data[indexTwo].clues[indexOne].question;
+    const newAnswer = data[indexTwo].clues[indexOne].answer;
+    const $newTd = $(`<td>${newQuestion}</td>`)
+    const $questionMark = $('<td>?</td>');
+    const $answer = $(`<td>${newAnswer}</td>`);
+    $answer.attr('id', `a${indexTwo}-${indexOne}`);
+    $questionMark.attr('id', `${indexTwo}-${indexOne}`)
+    $newTd.attr('id', `q${indexTwo}-${indexOne}`);
+    $answer.css('display', 'none');
+    $newTd.css('display', 'none');
+    newRow.append($newTd);
+    newRow.append($answer);
+    newRow.append($questionMark);
+    return newRow;
+};
+
+// puts the pieces from the functions above together and forms the HTML table
+async function fillTable() {
+    await getCategory(getCategoryIds());
+    
+    let [$table, $thead, $tbody, $headerRow] = makeTableHeadTableRowandHeaderRow();
+    $thead.appendTo($table);
+    $tbody.appendTo($table);
+    $headerRow.appendTo($thead);
+    
+    makeCategoryHeaders(categories, $headerRow);
+    makeAndFillTableRows(categories, $tbody);
+
     $table.appendTo($('body'));
     $table.on('click', handleClick);
     return $table;
@@ -173,8 +202,8 @@ function handleClick(evt) {
     if (id.slice(0)[0] === 'q') {
         let $question = $(`#${id}`);
         $question.remove();
-        let secondPartofId = id.slice(1)
-        let $answer = $(`#a${secondPartofId}`)
+        let secondPartOfId = id.slice(1)
+        let $answer = $(`#a${secondPartOfId}`)
         $answer.css('display', 'table-cell');
     } 
     else {
@@ -218,13 +247,6 @@ async function setupAndStart() {
 }
 
 $restartButton.on('click', async function() {
-    // if (!startGame) {
-    //     location.reload();
-    //     setTimeout(() => {
-    //         setupAndStart();
-    //     },500)
-    // }
-    // startGame = false;
     let $oldTable = $('#jeopardy');
     $oldTable.remove();
     categories = [];
