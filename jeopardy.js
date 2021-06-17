@@ -19,10 +19,8 @@
 //  ]
 
 let categories = [];
-let counter = 0;
 const $spinner = $('#spinner');
 const $restartButton = $('button');
-let startGame = true;
 /** Get NUM_CATEGORIES random category from API.
  *
  * Returns array of category ids
@@ -38,9 +36,9 @@ async function getCategoryIds() {
         const allQuestions = await axios.get('http://jservice.io/api/category',
         {params: {id:data[idx].id}})
         
-        const trueOrFalse = Array.from(allQuestions.data.clues).every(item => item.question !== "");
+        const containsAllQuestions = Array.from(allQuestions.data.clues).every(item => item.question !== "");
     
-        if (!idArray.includes(data[idx].id) && trueOrFalse) {
+        if (!idArray.includes(data[idx].id) && containsAllQuestions) {
             idArray.push(data[idx].id)
         }
         if (idArray.length === 6) {
@@ -61,42 +59,57 @@ async function getCategoryIds() {
  *   ]
  */
 
-async function getCategory(catId) {
-    let clues = [];
-    let clueCategories = {};
-    const arr = await catId;
+const getRandomIdIfLengthGreaterThanFive = (data, index, allCategories) => {
+    let clueId = Math.floor(Math.random() * data.clues.length);
+    if (data.clues.length === 5) {
+        clueId = index;
+    } else {
+        if (allCategories[data.title].indexOf(clueId) !== -1) {
+            while (allCategories[data.title].indexOf(clueId) !== -1) {
+                clueId = Math.floor(Math.random() * data.clues.length);
+            };
+        };
+    };
+    allCategories[data.title].push(clueId);
+    return clueId;
+};
 
-    for (let i = 0; i < arr.length; i++) {
-        let clueObj = {};
-        const id = arr[i];
+const formNewClue = (data, id) => {
+    return {
+        question: data.clues[id].question,
+        answer: data.clues[id].answer,
+        showing: null
+    };
+};
+
+const createNewClueObject = (data, clueArray) => {
+    let clueObject = {};
+    clueObject['title'] = data.title;
+    clueObject['clues'] = clueArray;
+    return clueObject;
+};
+
+async function getCategory(catIds) {
+    let clues = [];
+    let questionIdsForEachCategory = {};
+    const categoryIdsArray = await catIds;
+
+    for (let i = 0; i < categoryIdsArray.length; i++) {
+        // category id from "getCategoryIds()"
+        const id = categoryIdsArray[i];
         const {res, data} = await axios.get('http://jservice.io/api/category',
         {params: {id,}});
         
-        clueObj['title'] = data.title;
-        clueCategories[data.title] = []
+        questionIdsForEachCategory[data.title] = []
         for (let j = 0; j < 5; j++) {
-            let clueId = Math.floor(Math.random() * data.clues.length);
-            if (data.clues.length === 5) {
-                clueId = j;
-            } else {
-                if (clueCategories[data.title].indexOf(clueId) !== -1) {
-                    while (clueCategories[data.title].indexOf(clueId) !== -1) {
-                        clueId = Math.floor(Math.random() * data.clues.length);
-                    }
-                }
-            }
-            clueCategories[data.title].push(clueId);
-            const newClue = {
-                question: data.clues[clueId].question,
-                answer: data.clues[clueId].answer,
-                showing: null
-            }
+            let questionId = getRandomIdIfLengthGreaterThanFive(data, j, questionIdsForEachCategory);
+            const newClue = formNewClue(data, questionId);
             clues.push(newClue);
         }
-        clueObj['clues'] = clues;
-        categories.push(clueObj);
+
+        const clueObject = createNewClueObject(data, clues);
+        categories.push(clueObject);
         clues = [];
-        clueIdArray = [];
     };
     return categories;
 };
@@ -142,8 +155,8 @@ const makeAndFillTableRows = function (data, tbody) {
                 createAndAppendQuestionandAnswerTrs(data, j, k, $newRow);
             } catch(e) {
                 console.log('no question at this index');
-            }
-        }
+            };
+        };
         tbody.append($newRow);
     };
 };
@@ -152,11 +165,11 @@ const makeAndFillTableRows = function (data, tbody) {
 const createAndAppendQuestionandAnswerTrs = (data, indexOne, indexTwo, newRow) => {
     const newQuestion = data[indexTwo].clues[indexOne].question;
     const newAnswer = data[indexTwo].clues[indexOne].answer;
-    const $newTd = $(`<td>${newQuestion}</td>`)
+    const $newTd = $(`<td>${newQuestion}</td>`);
     const $questionMark = $('<td>?</td>');
     const $answer = $(`<td>${newAnswer}</td>`);
     $answer.attr('id', `a${indexTwo}-${indexOne}`);
-    $questionMark.attr('id', `${indexTwo}-${indexOne}`)
+    $questionMark.attr('id', `${indexTwo}-${indexOne}`);
     $newTd.attr('id', `q${indexTwo}-${indexOne}`);
     $answer.css('display', 'none');
     $newTd.css('display', 'none');
@@ -203,13 +216,13 @@ function handleClick(evt) {
         let $question = $(`#${id}`);
         $question.remove();
         let secondPartOfId = id.slice(1)
-        let $answer = $(`#a${secondPartOfId}`)
+        let $answer = $(`#a${secondPartOfId}`);
         $answer.css('display', 'table-cell');
     } 
     else {
         return;
-    }
-}
+    };
+};
 
 /** Wipe the current Jeopardy board, show the loading spinner,
  * and update the button used to fetch data.
@@ -219,8 +232,8 @@ function showLoadingView() {
     setTimeout(() => {
         $spinner.css('opacity', '1');
     })
-    $restartButton.text('Loading...')
-}
+    $restartButton.text('Loading...');
+};
 
 /** Remove the loading spinner and update the button used to fetch data. */
 
@@ -229,7 +242,7 @@ function hideLoadingView() {
         $spinner.css('opacity', '0');
         $restartButton.text('Restart');
     },10);
-}
+};
 
 /** Start game:
  *
