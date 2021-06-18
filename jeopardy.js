@@ -59,6 +59,9 @@ async function getCategoryIds() {
  *   ]
  */
 
+// if the clue category only has five question, let the clueId be the index
+// otherwise, keep cycling until you get a clue id that isn't in the object 
+// that holds all of the clue ids for each category.
 const getRandomIdIfLengthGreaterThanFive = (data, index, allCategories) => {
     let clueId = Math.floor(Math.random() * data.clues.length);
     if (data.clues.length === 5) {
@@ -74,6 +77,8 @@ const getRandomIdIfLengthGreaterThanFive = (data, index, allCategories) => {
     return clueId;
 };
 
+// create a new clue to be added to the category clues array in getCategory(), and then appended
+// to the global categories array
 const formNewClue = (data, id) => {
     return {
         question: data.clues[id].question,
@@ -82,6 +87,8 @@ const formNewClue = (data, id) => {
     };
 };
 
+// the final clue object for each category with five clues per category
+// gets appended to the global categories array
 const createNewClueObject = (data, clueArray) => {
     let clueObject = {};
     clueObject['title'] = data.title;
@@ -89,6 +96,8 @@ const createNewClueObject = (data, clueArray) => {
     return clueObject;
 };
 
+// function to create an object for each category title, with five random 
+// questions per category. This object is added to the global categories array
 async function getCategory(catIds) {
     let clues = [];
     let questionIdsForEachCategory = {};
